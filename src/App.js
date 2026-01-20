@@ -9,8 +9,12 @@ function App() {
   const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [speechError, setSpeechError] = useState('');
+  const [selectedAcId, setSelectedAcId] = useState(''); // No default - user must select
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
+  
+  // TODO: Replace with QR code scanner - scan QR to get AC ID
+  // For now, using dropdown selection
 
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
@@ -82,6 +86,12 @@ function App() {
   const handleSendMessage = async () => {
     const message = inputValue.trim();
     if (!message || isLoading) return;
+    
+    // Mandatory AC ID selection - show error if not selected
+    if (!selectedAcId || selectedAcId === '') {
+      setSpeechError('Please select an AC ID before sending your message.');
+      return;
+    }
 
     // Add user message to chat
     const userMessage = { type: 'user', text: message, timestamp: new Date() };
@@ -95,7 +105,10 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ 
+          message,
+          acId: selectedAcId // Include AC ID in request
+        }),
       });
 
       if (!response.ok) {
@@ -143,8 +156,32 @@ function App() {
     <div className="App">
       <div className="chat-container">
         <div className="chat-header">
-          <h1>Feedback Assistant</h1>
-          <p>Share your feedback or concerns. I'm here to help.</p>
+          <h1>Living Things Cooling Management</h1>
+          <p>Feedback Assistant</p>
+          <div className="ac-selector-container">
+            <label htmlFor="ac-select" className="ac-selector-label">
+              AC Unit:
+            </label>
+            <select
+              id="ac-select"
+              className="ac-selector"
+              value={selectedAcId}
+              onChange={(e) => {
+                setSelectedAcId(e.target.value);
+                setSpeechError(''); // Clear error when AC is selected
+              }}
+              disabled={isLoading}
+              required
+            >
+              <option value="">-- Select AC ID --</option>
+              <option value="AC-001">AC-001</option>
+              <option value="AC-002">AC-002</option>
+              <option value="AC-003">AC-003</option>
+              <option value="AC-004">AC-004</option>
+              <option value="AC-005">AC-005</option>
+            </select>
+            <span className="qr-note">📱 (Replace with QR scanner)</span>
+          </div>
           {speechError && (
             <div className="speech-error" role="alert">
               {speechError}
@@ -231,6 +268,7 @@ function App() {
               className="send-button"
               onClick={handleSendMessage}
               disabled={!inputValue.trim() || isLoading}
+              title="Send message"
             >
               {isLoading ? '⏳' : '➤'}
             </button>
