@@ -16,11 +16,27 @@ function App() {
   const shouldSendOnStopRef = useRef(false);
   const inputValueRef = useRef('');
   const sendMessageRef = useRef(null);
+  const messagesRef = useRef([]);
+  const selectedAcIdRef = useRef('AC-001');
+  const isLoadingRef = useRef(false);
 
   // Keep latest input in a ref (so speech callbacks don't need hook deps)
   useEffect(() => {
     inputValueRef.current = inputValue;
   }, [inputValue]);
+
+  // Keep latest messages / selection / loading in refs (for stable callbacks)
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    selectedAcIdRef.current = selectedAcId;
+  }, [selectedAcId]);
+
+  useEffect(() => {
+    isLoadingRef.current = isLoading;
+  }, [isLoading]);
   
   // TODO: Replace with QR code scanner - scan QR to get AC ID
   // For now, using dropdown selection
@@ -135,24 +151,30 @@ function App() {
   };
 
   const handleSendMessage = async (overrideText) => {
-    const message = (typeof overrideText === 'string' ? overrideText : inputValue).trim();
-    if (!message || isLoading) return;
-    
-    // Mandatory AC ID selection - show error if not selected
-    if (!selectedAcId || selectedAcId === '') {
+    const raw = typeof overrideText === 'string' ? overrideText : inputValueRef.current;
+    const message = (raw || '').trim();
+    if (!message || isLoadingRef.current) return;
+
+    const acId = selectedAcIdRef.current;
+    if (!acId) {
       setSpeechError('Please select an AC ID before sending your message.');
       return;
     }
 
-    // Add user message to chat
     const userMessage = { type: 'user', text: message, timestamp: new Date() };
-    const nextMessages = [...messages, userMessage];
+    const nextMessages = [...(messagesRef.current || []), userMessage];
+
+    // Keep state + ref in sync immediately (so history uses the same messages the UI will show)
+    messagesRef.current = nextMessages;
     setMessages(nextMessages);
+
     setInputValue('');
+    inputValueRef.current = '';
+
     setIsLoading(true);
+    isLoadingRef.current = true;
 
     try {
-      // Send a small rolling window of chat context so the LLM can handle follow-ups like "still hot"
       const historyWindow = nextMessages
         .slice(-10)
         .filter(m => m && typeof m.text === 'string' && m.text.trim().length > 0)
@@ -163,54 +185,52 @@ function App() {
 
       const response = await fetch(`${API_URL}/api/feedback`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           message,
-          acId: selectedAcId, // Include AC ID in request
+          acId,
           history: historyWindow,
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Failed to get response');
       }
 
       const data = await response.json();
-      const assistantMessage = { 
-        type: 'assistant', 
-        text: data.response, 
-        timestamp: new Date() 
+      const assistantMessage = {
+        type: 'assistant',
+        text: data.response,
+        timestamp: new Date(),
       };
-      setMessages(prev => [...prev, assistantMessage]);
 
-      // Optional: Speak the response
+      messagesRef.current = [...messagesRef.current, assistantMessage];
+      setMessages(messagesRef.current);
+
       if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(data.response);
         utterance.rate = 0.9;
         utterance.pitch = 1;
         window.speechSynthesis.speak(utterance);
       }
-
     } catch (error) {
       console.error('Error sending message:', error);
-      const errorMessage = { 
-        type: 'error', 
-        text: `Error: ${error.message}`, 
-        timestamp: new Date() 
+      const errorMessage = {
+        type: 'error',
+        text: `Error: ${error.message}`,
+        timestamp: new Date(),
       };
-      setMessages(prev => [...prev, errorMessage]);
+      messagesRef.current = [...messagesRef.current, errorMessage];
+      setMessages(messagesRef.current);
     } finally {
       setIsLoading(false);
+      isLoadingRef.current = false;
     }
   };
 
-  // Expose the latest send function to speech callbacks without adding hook deps
-  useEffect(() => {
-    sendMessageRef.current = handleSendMessage;
-  }, [handleSendMessage]);
+  // Keep ref pointer up-to-date for speech callbacks
+  sendMessageRef.current = handleSendMessage;
 
   return (
     <div className="App">
