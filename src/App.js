@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './App.css';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://lttalk.livingthings.dev';
-
+// const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const API_URL = process.env.REACT_APP_API_URL || 'https://lttalk.livingthings.dev';
 function App() {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
