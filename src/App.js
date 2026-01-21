@@ -14,6 +14,13 @@ function App() {
   const recognitionRef = useRef(null);
   const finalTranscriptRef = useRef('');
   const shouldSendOnStopRef = useRef(false);
+  const inputValueRef = useRef('');
+  const sendMessageRef = useRef(null);
+
+  // Keep latest input in a ref (so speech callbacks don't need hook deps)
+  useEffect(() => {
+    inputValueRef.current = inputValue;
+  }, [inputValue]);
   
   // TODO: Replace with QR code scanner - scan QR to get AC ID
   // For now, using dropdown selection
@@ -75,7 +82,7 @@ function App() {
 
           const textToSend =
             (finalTranscriptRef.current && finalTranscriptRef.current.trim()) ||
-            (inputValue && inputValue.trim()) ||
+            (inputValueRef.current && inputValueRef.current.trim()) ||
             '';
 
           finalTranscriptRef.current = '';
@@ -83,7 +90,9 @@ function App() {
 
           if (textToSend) {
             // Auto-send and clear input (handleSendMessage already clears input on successful send)
-            handleSendMessage(textToSend);
+            if (typeof sendMessageRef.current === 'function') {
+              sendMessageRef.current(textToSend);
+            }
           }
         }
       };
@@ -197,6 +206,11 @@ function App() {
       setIsLoading(false);
     }
   };
+
+  // Expose the latest send function to speech callbacks without adding hook deps
+  useEffect(() => {
+    sendMessageRef.current = handleSendMessage;
+  }, [handleSendMessage]);
 
   return (
     <div className="App">
