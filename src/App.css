@@ -189,10 +189,13 @@ html, body {
   margin-top: 12px;
   padding: 10px 12px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 77, 79, 0.22); /* more visible red tint */
+  border: 1px solid rgba(255, 77, 79, 0.55);
+  box-shadow: 0 10px 24px rgba(255, 77, 79, 0.18);
   font-size: 13px;
   line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: 0.1px;
 }
 
 .messages-container {
@@ -205,6 +208,7 @@ html, body {
   gap: 12px;
   -webkit-overflow-scrolling: touch;
   min-height: 0; /* Critical for flex children to allow scrolling */
+  position: relative; /* Needed for listening overlay (messages only) */
 }
 
 @media (max-width: 768px) {
@@ -214,20 +218,66 @@ html, body {
   }
 }
 
-.listening-indicator {
+/* Centered listening overlay (mic in center) */
+.listening-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 10;
+}
+
+.listening-card {
+  width: min(520px, 92%);
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 15px;
-  padding: 20px;
-  margin-bottom: 15px;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-  animation: slideIn 0.3s ease-out;
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+  animation: slideIn 0.2s ease-out;
+}
+
+.listening-transcript {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: white;
+  font-size: 14px;
+  line-height: 1.4;
+  max-height: 90px;
+  overflow: auto;
+  word-break: break-word;
+}
+
+.listening-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cancel-listening-btn.secondary {
+  background: rgba(0, 0, 0, 0.18);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.cancel-listening-btn.secondary:hover {
+  background: rgba(0, 0, 0, 0.26);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 @media (max-width: 768px) {
-  .listening-indicator {
-    padding: 15px;
-    margin-bottom: 12px;
-    border-radius: 12px;
+  .listening-overlay {
+    padding: 12px;
+  }
+
+  .listening-card {
+    padding: 16px;
+    border-radius: 14px;
   }
 }
 

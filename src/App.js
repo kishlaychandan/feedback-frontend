@@ -9,9 +9,11 @@ function App() {
   const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [speechError, setSpeechError] = useState('');
-  const [selectedAcId, setSelectedAcId] = useState(''); // No default - user must select
+  const [selectedAcId, setSelectedAcId] = useState('AC-001'); // Default selection
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
+  const finalTranscriptRef = useRef('');
+  const shouldSendOnStopRef = useRef(false);
   
   // TODO: Replace with QR code scanner - scan QR to get AC ID
   // For now, using dropdown selection
@@ -26,15 +28,26 @@ function App() {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = false;
+      // Live dictation: keep updating the input box while user speaks
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
       recognitionRef.current.lang = 'en-US';
 
       recognitionRef.current.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        setInputValue(transcript);
+        let interimTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const chunk = event.results[i][0]?.transcript || '';
+          if (event.results[i].isFinal) {
+            finalTranscriptRef.current = `${finalTranscriptRef.current} ${chunk}`.trim();
+          } else {
+            interimTranscript += chunk;
+          }
+        }
+
+        const combined = `${finalTranscriptRef.current} ${interimTranscript}`.trim();
+        if (combined.length > 0) setInputValue(combined);
         setSpeechError('');
-        setIsListening(false);
       };
 
       recognitionRef.current.onerror = async (event) => {
@@ -55,6 +68,24 @@ function App() {
 
       recognitionRef.current.onend = () => {
         setIsListening(false);
+
+        // Send only when the user explicitly stopped the mic (mic click again / Stop button)
+        if (shouldSendOnStopRef.current) {
+          shouldSendOnStopRef.current = false;
+
+          const textToSend =
+            (finalTranscriptRef.current && finalTranscriptRef.current.trim()) ||
+            (inputValue && inputValue.trim()) ||
+            '';
+
+          finalTranscriptRef.current = '';
+          setInputValue('');
+
+          if (textToSend) {
+            // Auto-send and clear input (handleSendMessage already clears input on successful send)
+            handleSendMessage(textToSend);
+          }
+        }
       };
     }
 
@@ -72,19 +103,30 @@ function App() {
     }
 
     if (isListening) {
-      // Stop listening
+      // Stop listening -> auto-send when stopped
+      shouldSendOnStopRef.current = true;
       recognitionRef.current.stop();
-      setIsListening(false);
     } else {
       // Start listening
       setSpeechError('');
+      finalTranscriptRef.current = '';
+      shouldSendOnStopRef.current = false;
       recognitionRef.current.start();
       setIsListening(true);
     }
   };
 
-  const handleSendMessage = async () => {
-    const message = inputValue.trim();
+  const handleCancelListening = () => {
+    if (!recognitionRef.current) return;
+    // Stop without sending
+    shouldSendOnStopRef.current = false;
+    finalTranscriptRef.current = '';
+    setInputValue('');
+    recognitionRef.current.stop();
+  };
+
+  const handleSendMessage = async (overrideText) => {
+    const message = (typeof overrideText === 'string' ? overrideText : inputValue).trim();
     if (!message || isLoading) return;
     
     // Mandatory AC ID selection - show error if not selected
@@ -95,11 +137,21 @@ function App() {
 
     // Add user message to chat
     const userMessage = { type: 'user', text: message, timestamp: new Date() };
-    setMessages(prev => [...prev, userMessage]);
+    const nextMessages = [...messages, userMessage];
+    setMessages(nextMessages);
     setInputValue('');
     setIsLoading(true);
 
     try {
+      // Send a small rolling window of chat context so the LLM can handle follow-ups like "still hot"
+      const historyWindow = nextMessages
+        .slice(-10)
+        .filter(m => m && typeof m.text === 'string' && m.text.trim().length > 0)
+        .map(m => ({
+          role: m.type === 'assistant' ? 'assistant' : 'user',
+          text: String(m.text).slice(0, 500),
+        }));
+
       const response = await fetch(`${API_URL}/api/feedback`, {
         method: 'POST',
         headers: {
@@ -107,7 +159,8 @@ function App() {
         },
         body: JSON.stringify({ 
           message,
-          acId: selectedAcId // Include AC ID in request
+          acId: selectedAcId, // Include AC ID in request
+          history: historyWindow,
         }),
       });
 
@@ -142,13 +195,6 @@ function App() {
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
     }
   };
 
@@ -190,26 +236,45 @@ function App() {
         </div>
 
         <div className="messages-container">
+          {/* Center overlay while listening (over messages only, so input stays visible) */}
           {isListening && (
-            <div className="listening-indicator">
-              <div className="listening-content">
-                <div className="listening-animation">
-                  <span className="pulse-dot"></span>
-                  <span className="pulse-ring"></span>
-                </div>
-                <div className="listening-text">
-                  <p className="listening-title">🎤 Listening...</p>
-                  <p className="listening-hint">Speak your feedback. Click the microphone again to stop.</p>
-                  <button 
-                    className="cancel-listening-btn"
-                    onClick={handleVoiceInput}
-                  >
-                    Cancel
-                  </button>
+            <div className="listening-overlay" role="dialog" aria-live="polite">
+              <div className="listening-card">
+                <div className="listening-content">
+                  <div className="listening-animation" aria-hidden="true">
+                    <span className="pulse-dot"></span>
+                    <span className="pulse-ring"></span>
+                  </div>
+                  <div className="listening-text">
+                    <p className="listening-title">🎤 Listening…</p>
+                    <p className="listening-hint">Speak normally — live text is updating below.</p>
+
+                    <div className="listening-transcript" aria-label="Live transcription">
+                      {inputValue && inputValue.trim().length > 0 ? inputValue : '…'}
+                    </div>
+
+                    <div className="listening-actions">
+                      <button
+                        className="cancel-listening-btn secondary"
+                        onClick={handleCancelListening}
+                        type="button"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="cancel-listening-btn"
+                        onClick={handleVoiceInput}
+                        type="button"
+                      >
+                        Stop &amp; Send
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           )}
+
           {messages.length === 0 && !isListening ? (
             <div className="welcome-message">
               <p>👋 Welcome! You can:</p>
@@ -252,7 +317,6 @@ function App() {
               placeholder={isListening ? "Listening... Speak your feedback" : "Type your feedback here..."}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={handleKeyPress}
               rows="1"
               disabled={isLoading}
             />
@@ -268,9 +332,9 @@ function App() {
               className="send-button"
               onClick={handleSendMessage}
               disabled={!inputValue.trim() || isLoading}
-              title="Send message"
+              title="Confirm (✓) and send"
             >
-              {isLoading ? '⏳' : '➤'}
+              {isLoading ? '⏳' : '✓'}
             </button>
           </div>
         </div>
