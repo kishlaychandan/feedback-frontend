@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './App.css';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const API_URL = process.env.REACT_APP_API_URL || 'http://lttalk.livingthings.dev';
 
 function App() {
   const [messages, setMessages] = useState([]);
@@ -9,7 +9,9 @@ function App() {
   const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [speechError, setSpeechError] = useState('');
-  const [selectedAcId, setSelectedAcId] = useState('AC-001'); // Default selection
+  const [selectedAcId, setSelectedAcId] = useState('AC-001'); // Fallback only (dropdown removed)
+  const [zoneIdFromUrl, setZoneIdFromUrl] = useState(''); // If present, prefer this over dropdown
+  const [isZoneContext, setIsZoneContext] = useState(false); // true only when opened via QR/id URL
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
   const finalTranscriptRef = useRef('');
@@ -19,6 +21,58 @@ function App() {
   const messagesRef = useRef([]);
   const selectedAcIdRef = useRef('AC-001');
   const isLoadingRef = useRef(false);
+  const sessionIdRef = useRef('');
+
+  // Create a stable per-browser sessionId for multi-user concurrency (demo)
+  useEffect(() => {
+    try {
+      const key = 'lt_feedback_session_id';
+      const existing = window.localStorage.getItem(key);
+      if (existing && existing.trim()) {
+        sessionIdRef.current = existing.trim();
+        return;
+      }
+      const newId =
+        (window.crypto && typeof window.crypto.randomUUID === 'function'
+          ? window.crypto.randomUUID()
+          : `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`);
+      window.localStorage.setItem(key, newId);
+      sessionIdRef.current = newId;
+    } catch {
+      // If storage is blocked, fallback to a non-persistent id
+      sessionIdRef.current = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+    }
+  }, []);
+
+  // Read zoneId from QR URL like: https://your-app/?zoneId=ZONE_123
+  useEffect(() => {
+    try {
+      // Support both:
+      // 1) /?zoneId=ZONE_123
+      // 2) /ZONE_123  (path-based)
+      const params = new URLSearchParams(window.location.search);
+      const zidFromQuery = (params.get('zoneId') || '').trim();
+
+      const path = (window.location.pathname || '/').trim();
+      const isRoot = path === '/' || path === '';
+      const zidFromPath = !isRoot ? path.replace(/^\/+/, '').split('/')[0].trim() : '';
+
+      const zid = (zidFromQuery || zidFromPath || '').trim();
+      if (!zid) {
+        setIsZoneContext(false);
+        return;
+      }
+
+      const cleaned = zid.slice(0, 64);
+      setZoneIdFromUrl(cleaned);
+      setIsZoneContext(true);
+      // Keep fallback in sync (dropdown removed; still used as fallback if needed)
+      setSelectedAcId(cleaned);
+      setSpeechError('');
+    } catch {
+      // ignore
+    }
+  }, []);
 
   // Keep latest input in a ref (so speech callbacks don't need hook deps)
   useEffect(() => {
@@ -188,7 +242,9 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message,
-          acId,
+          zoneId: zoneIdFromUrl || acId, // QR zoneId preferred, fallback to dropdown
+          acId: acId, // keep for backward compatibility
+          sessionId: sessionIdRef.current,
           history: historyWindow,
         }),
       });
@@ -199,6 +255,10 @@ function App() {
       }
 
       const data = await response.json();
+      // If backend had to fallback due to Gemini limits/timeouts, show a prominent warning (but still show reply)
+      if (data && data.llm && data.llm.ok === false) {
+        setSpeechError(data.llm.message || 'Gemini is limited right now. Using fallback mode.');
+      }
       const assistantMessage = {
         type: 'assistant',
         text: data.response,
@@ -235,32 +295,28 @@ function App() {
   return (
     <div className="App">
       <div className="chat-container">
+        {!isZoneContext ? (
+          <div className="chat-header">
+            <h1>Living Things Cooling Management</h1>
+            <p>Dashboard</p>
+            <div className="welcome-message" style={{ marginTop: 16 }}>
+              <p>
+                Scan the QR on the AC/room to open the Feedback Assistant.
+              </p>
+              <p style={{ marginTop: 10, color: '#666' }}>
+                Example URL: <strong>/AC-001</strong> or <strong>/?zoneId=AC-001</strong>
+              </p>
+            </div>
+          </div>
+        ) : (
         <div className="chat-header">
           <h1>Living Things Cooling Management</h1>
           <p>Feedback Assistant</p>
           <div className="ac-selector-container">
-            <label htmlFor="ac-select" className="ac-selector-label">
-              AC Unit:
-            </label>
-            <select
-              id="ac-select"
-              className="ac-selector"
-              value={selectedAcId}
-              onChange={(e) => {
-                setSelectedAcId(e.target.value);
-                setSpeechError(''); // Clear error when AC is selected
-              }}
-              disabled={isLoading}
-              required
-            >
-              <option value="">-- Select AC ID --</option>
-              <option value="AC-001">AC-001</option>
-              <option value="AC-002">AC-002</option>
-              <option value="AC-003">AC-003</option>
-              <option value="AC-004">AC-004</option>
-              <option value="AC-005">AC-005</option>
-            </select>
-            <span className="qr-note">📱 (Replace with QR scanner)</span>
+            <span className="ac-selector-label">Zone:</span>
+            <span className="ac-selector" style={{ cursor: 'default' }}>
+              {zoneIdFromUrl || selectedAcId}
+            </span>
           </div>
           {speechError && (
             <div className="speech-error" role="alert">
@@ -269,7 +325,11 @@ function App() {
           )}
         </div>
 
-        <div className="messages-container">
+        )}
+
+        {!isZoneContext ? null : (
+          <>
+          <div className="messages-container">
           {/* Center overlay while listening (over messages only, so input stays visible) */}
           {isListening && (
             <div className="listening-overlay" role="dialog" aria-live="polite">
@@ -372,6 +432,8 @@ function App() {
             </button>
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
   );
