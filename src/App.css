@@ -59,6 +59,7 @@ html, body {
     right: 0;
     bottom: 0;
     width: 100%;
+    max-width: 100%;
   }
   
   .chat-container {
@@ -67,6 +68,7 @@ html, body {
     border-radius: 0;
     box-shadow: none;
     width: 100%;
+    max-width: 100%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -85,6 +87,124 @@ html, body {
   
   .chat-container > .input-container {
     flex: 0 0 auto;
+  }
+}
+
+/* Extra small screens (iPhone 15, etc.) - prevent horizontal scrolling */
+@media (max-width: 480px) {
+  html, body {
+    overflow-x: hidden !important;
+    max-width: 100vw;
+  }
+  
+  #root {
+    overflow-x: hidden !important;
+    max-width: 100vw;
+  }
+  
+  .App {
+    overflow-x: hidden !important;
+    overflow-y: hidden;
+    max-width: 100vw;
+    width: 100vw;
+  }
+  
+  .chat-container {
+    overflow-x: hidden !important;
+    overflow-y: hidden;
+    max-width: 100vw;
+    width: 100vw;
+  }
+  
+  .header-layout {
+    flex-wrap: nowrap;
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+  
+  .header-left,
+  .header-middle,
+  .header-right {
+    overflow: hidden;
+    min-width: 0;
+    max-width: 100%;
+  }
+  
+  .header-logo {
+    max-width: 45px;
+    max-height: 45px;
+  }
+  
+  .header-middle {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+  
+  .header-middle h1 {
+    font-size: 14px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    line-height: 1.2;
+  }
+  
+  .header-middle p {
+    font-size: 9px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    line-height: 1.2;
+  }
+  
+  .messages-container {
+    overflow-x: hidden !important;
+    overflow-y: auto;
+    width: 100%;
+    max-width: 100vw;
+    padding: 8px;
+  }
+  
+  .message {
+    max-width: 85% !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+  
+  .message-text {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    max-width: 100%;
+  }
+  
+  .input-container {
+    overflow-x: hidden !important;
+    width: 100%;
+    max-width: 100vw;
+    padding: 6px 8px;
+  }
+  
+  .input-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    gap: 4px;
+  }
+  
+  .text-input {
+    max-width: 100%;
+    overflow-x: hidden;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  .voice-button,
+  .send-button {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
   }
 }
 
