@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './App.css';
+import { requestMicrophonePermission, getMicrophonePermissionErrorMessage } from './utils/microphonePermission';
 
 // const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 const API_URL = process.env.REACT_APP_API_URL || 'https://lttalk.livingthings.dev';
@@ -103,26 +104,15 @@ function App() {
 
   // Request microphone permission on page load
   useEffect(() => {
-    const requestMicrophonePermission = async () => {
-      try {
-        // Check if browser supports getUserMedia
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-          // Request microphone permission
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          // Stop the stream immediately - we just needed permission
-          stream.getTracks().forEach(track => track.stop());
-          console.log('Microphone permission granted');
-        }
-      } catch (err) {
-        // Permission denied or error - this is okay, we'll handle it when user tries to use voice
-        console.log('Microphone permission not granted yet:', err.name);
-        // Don't show error here - let user try voice first
-      }
-    };
-
     // Request permission after a short delay to avoid blocking page load
     const timer = setTimeout(() => {
-      requestMicrophonePermission();
+      requestMicrophonePermission().then(granted => {
+        if (granted) {
+          console.log('Microphone permission granted on page load');
+        } else {
+          console.log('Microphone permission not granted yet - will request when user tries voice');
+        }
+      });
     }, 1000);
 
     return () => clearTimeout(timer);
@@ -259,8 +249,19 @@ function App() {
         if (err === 'network') {
           setSpeechError('Network error. Please check your internet connection and try again.');
         } else if (err === 'not-allowed' || err === 'service-not-allowed') {
-          // Clear, actionable error message for microphone permission
-          setSpeechError('Microphone permission is required for voice input. Please enable microphone access in your browser settings and refresh the page. On mobile: Settings > Browser > Microphone > Allow');
+          // Permission denied - request again
+          setSpeechError('Microphone permission denied. Requesting permission again...');
+          requestMicrophonePermission().then(result => {
+            if (result.granted) {
+              setSpeechError('Permission granted! Please click the microphone button again to use voice input.');
+            } else if (result.permanentlyBlocked) {
+              // Permanently blocked - show instructions to enable manually
+              setSpeechError(getMicrophonePermissionErrorMessage(err, true));
+            } else {
+              // Temporary denial or other error
+              setSpeechError(getMicrophonePermissionErrorMessage(err, false));
+            }
+          });
         } else if (err === 'no-speech') {
           setSpeechError('No speech detected. Please try again and speak clearly.');
         } else {
@@ -276,9 +277,43 @@ function App() {
     };
   }, []);
 
-  const handleVoiceInput = () => {
+  const handleVoiceInput = async () => {
+    // If SpeechRecognition is not initialized, check if browser supports it and request permission
     if (!recognitionRef.current) {
-      setSpeechError('Speech recognition is not supported in your browser. Please use text input.');
+      const isSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+      if (!isSupported) {
+        // Detect browser and provide helpful message
+        const userAgent = navigator.userAgent;
+        let browserInfo = 'your browser';
+        let suggestion = '';
+        
+        if (userAgent.indexOf('Firefox') > -1) {
+          browserInfo = 'Firefox';
+          suggestion = 'Voice input requires Chrome, Edge, or Safari. Please use one of these browsers or type your message instead.';
+        } else if (userAgent.indexOf('Safari') > -1 && userAgent.indexOf('Chrome') === -1) {
+          browserInfo = 'Safari';
+          suggestion = 'Please use Chrome or Edge for voice input, or type your message instead.';
+        } else {
+          suggestion = 'Voice input requires Chrome, Edge, or Safari. Please use one of these browsers or type your message instead.';
+        }
+        
+        setSpeechError(`Speech recognition is not supported in ${browserInfo}. ${suggestion}`);
+        return;
+      }
+      
+      // Browser supports it but recognition not initialized - likely permission issue
+      // Request permission first
+      setSpeechError('Requesting microphone permission...');
+      const permissionGranted = await requestMicrophonePermission();
+      
+      if (!permissionGranted) {
+        setSpeechError(getMicrophonePermissionErrorMessage('not-allowed'));
+        return;
+      }
+      
+      // Permission granted, but recognition still not initialized
+      // This shouldn't happen, but show helpful message
+      setSpeechError('Permission granted! Please refresh the page to enable voice input.');
       return;
     }
 
@@ -312,7 +347,14 @@ function App() {
         setIsListening(false);
         // Check if it's a permission error
         if (err.name === 'NotAllowedError' || err.message?.includes('permission') || err.message?.includes('not-allowed')) {
-          setSpeechError('Microphone permission is required. Please enable microphone access in your browser settings and refresh the page. On mobile: Settings > Browser > Microphone > Allow');
+          // Request permission again
+          setSpeechError('Microphone permission denied. Requesting permission again...');
+          const permissionGranted = await requestMicrophonePermission();
+          if (permissionGranted) {
+            setSpeechError('Permission granted! Please click the microphone button again to use voice input.');
+          } else {
+            setSpeechError(getMicrophonePermissionErrorMessage('not-allowed'));
+          }
         } else {
           setSpeechError('Could not start voice recognition. Please try again or type your message.');
         }
