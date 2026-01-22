@@ -451,7 +451,7 @@ function App() {
             </button>
           </div>
           <div className="ac-selector-container">
-            <span className="ac-selector-label">Zone:</span>
+            <span className="ac-selector-label">Working Area:</span>
             <span className="ac-selector" style={{ cursor: 'default' }}>
               {zoneIdFromUrl || selectedAcId}
             </span>
