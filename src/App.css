@@ -38,39 +38,6 @@ html, body {
   overflow: hidden;
 }
 
-@media (max-width: 768px) {
-  html, body {
-    overflow: hidden;
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    height: 100dvh; /* Dynamic viewport height for mobile */
-  }
-
-  #root {
-    height: 100dvh;
-    overflow: hidden;
-  }
-
-  .App {
-    padding: 0;
-    margin: 0;
-    height: 100dvh;
-    width: 100%;
-    overflow: hidden;
-    min-height: unset;
-    max-height: 100dvh;
-  }
-
-  .chat-container {
-    height: 100dvh;
-    max-height: 100dvh;
-    border-radius: 0;
-    box-shadow: none;
-    width: 100%;
-    margin: 0;
-  }
-}
 
 .chat-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -147,43 +114,7 @@ html, body {
   font-style: italic;
 }
 
-@media (max-width: 768px) {
-  .chat-header {
-    padding: 15px;
-  }
-
-  .chat-header h1 {
-    font-size: 22px;
-    margin-bottom: 4px;
-  }
-
-  .chat-header p {
-    font-size: 12px;
-    margin-bottom: 10px;
-  }
-
-  .ac-selector-container {
-    gap: 8px;
-    margin-top: 10px;
-  }
-
-  .ac-selector-label {
-    font-size: 12px;
-  }
-
-  .ac-selector {
-    padding: 6px 10px;
-    font-size: 13px;
-    min-width: 90px;
-  }
-
-  .qr-note {
-    font-size: 10px;
-    width: 100%;
-    text-align: center;
-    margin-top: 4px;
-  }
-}
+/* Removed mobile-specific styles - using desktop styles for all */
 
 .speech-error {
   margin-top: 12px;
@@ -211,12 +142,7 @@ html, body {
   position: relative; /* Needed for listening overlay (messages only) */
 }
 
-@media (max-width: 768px) {
-  .messages-container {
-    padding: 12px;
-    gap: 10px;
-  }
-}
+/* Removed mobile-specific styles - using desktop styles for all */
 
 /* Centered listening overlay (mic in center) */
 .listening-overlay {
@@ -270,16 +196,7 @@ html, body {
   border-color: rgba(255, 255, 255, 0.5);
 }
 
-@media (max-width: 768px) {
-  .listening-overlay {
-    padding: 12px;
-  }
-
-  .listening-card {
-    padding: 16px;
-    border-radius: 14px;
-  }
-}
+/* Removed mobile-specific styles - using desktop styles for all */
 
 @keyframes slideIn {
   from {
@@ -300,13 +217,7 @@ html, body {
   flex-wrap: wrap;
 }
 
-@media (max-width: 768px) {
-  .listening-content {
-    gap: 12px;
-    flex-direction: column;
-    text-align: center;
-  }
-}
+/* Removed mobile-specific styles - using desktop styles for all */
 
 .listening-animation {
   position: relative;
@@ -315,12 +226,7 @@ html, body {
   flex-shrink: 0;
 }
 
-@media (max-width: 768px) {
-  .listening-animation {
-    width: 50px;
-    height: 50px;
-  }
-}
+/* Removed mobile-specific styles - using desktop styles for all */
 
 .pulse-dot {
   position: absolute;
@@ -387,17 +293,7 @@ html, body {
   color: white;
 }
 
-@media (max-width: 768px) {
-  .listening-title {
-    font-size: 16px;
-    margin-bottom: 6px;
-  }
-
-  .listening-hint {
-    font-size: 12px;
-    margin-bottom: 10px;
-  }
-}
+/* Removed mobile-specific styles - using desktop styles for all */
 
 .cancel-listening-btn {
   background: rgba(255, 255, 255, 0.2);
@@ -426,13 +322,7 @@ html, body {
   max-width: 500px;
 }
 
-@media (max-width: 768px) {
-  .welcome-message {
-    padding: 15px;
-    border-radius: 12px;
-    margin: 0 5px;
-  }
-}
+/* Removed mobile-specific styles - using desktop styles for all */
 
 .welcome-message p {
   font-size: 16px;
@@ -501,20 +391,7 @@ html, body {
   overflow-wrap: break-word;
 }
 
-@media (max-width: 768px) {
-  .message-content {
-    max-width: 85%;
-    padding: 10px 14px;
-    border-radius: 16px;
-  }
-}
-
-@media (max-width: 480px) {
-  .message-content {
-    max-width: 90%;
-    padding: 8px 12px;
-  }
-}
+/* Removed mobile-specific styles - using desktop styles for all */
 
 .message.user .message-content {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -543,12 +420,7 @@ html, body {
   word-break: break-word;
 }
 
-@media (max-width: 768px) {
-  .message-content p {
-    font-size: 14px;
-    line-height: 1.4;
-  }
-}
+/* Removed mobile-specific styles - using desktop styles for all */
 
 .message-time {
   display: block;
@@ -597,11 +469,7 @@ html, body {
   flex-shrink: 0;
 }
 
-@media (max-width: 768px) {
-  .input-container {
-    padding: 12px;
-  }
-}
+/* Removed mobile-specific styles - using desktop styles for all */
 
 .input-wrapper {
   display: flex;
@@ -609,11 +477,7 @@ html, body {
   align-items: flex-end;
 }
 
-@media (max-width: 768px) {
-  .input-wrapper {
-    gap: 6px;
-  }
-}
+/* Removed mobile-specific styles - using desktop styles for all */
 
 .text-input {
   flex: 1;
@@ -629,21 +493,7 @@ html, body {
   appearance: none;
 }
 
-@media (max-width: 768px) {
-  .text-input {
-    padding: 10px 14px;
-    font-size: 14px;
-    border-radius: 20px;
-    max-height: 100px;
-  }
-}
-
-@media (max-width: 480px) {
-  .text-input {
-    padding: 8px 12px;
-    font-size: 14px;
-  }
-}
+/* Removed mobile-specific styles - using desktop styles for all */
 
 .text-input:focus {
   outline: none;
@@ -671,23 +521,7 @@ html, body {
   touch-action: manipulation;
 }
 
-@media (max-width: 768px) {
-  .voice-button,
-  .send-button {
-    width: 42px;
-    height: 42px;
-    font-size: 18px;
-  }
-}
-
-@media (max-width: 480px) {
-  .voice-button,
-  .send-button {
-    width: 40px;
-    height: 40px;
-    font-size: 16px;
-  }
-}
+/* Removed mobile-specific styles - using desktop styles for all */
 
 .voice-button {
   background: #f0f0f0;
@@ -748,38 +582,5 @@ html, body {
   background: #555;
 }
 
-/* Additional mobile optimizations */
-@media (max-width: 480px) {
-  html, body {
-    overflow: hidden;
-    position: fixed;
-    width: 100%;
-    height: 100%;
-  }
-
-  .App {
-    padding: 0;
-    height: 100vh;
-    width: 100%;
-    overflow: hidden;
-  }
-
-  .chat-header h1 {
-    font-size: 20px;
-  }
-
-  .speech-error {
-    font-size: 12px;
-    padding: 8px 10px;
-  }
-}
-
-/* Prevent text size adjustment on iOS */
-@media screen and (max-width: 768px) {
-  input,
-  select,
-  textarea {
-    font-size: 16px !important;
-  }
-}
+/* Unified styling - same for all screen sizes */
 

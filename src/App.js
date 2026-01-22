@@ -165,27 +165,43 @@ function App() {
       };
 
       recognitionRef.current.onresult = (event) => {
-        // IMPORTANT: On mobile (especially Chrome/Android), `resultIndex` / restarts can cause
-        // repeated chunks. The most reliable approach is to rebuild the transcript from scratch
-        // every time using the full `event.results` array.
-        let finalText = '';
+        // OPTIMIZED for low latency: Process only NEW results (from resultIndex)
+        // Show interim results immediately for instant feedback
+        
+        let newFinalText = '';
         let interimText = '';
-
-        for (let i = 0; i < event.results.length; i++) {
-          const chunk = (event.results[i][0]?.transcript || '').trim();
+        
+        // Process only NEW results (from resultIndex onwards) - MUCH faster than processing all
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          const chunk = (result[0]?.transcript || '').trim();
           if (!chunk) continue;
-          if (event.results[i].isFinal) {
-            finalText += (finalText ? ' ' : '') + chunk;
+          
+          if (result.isFinal) {
+            // Final results: add to final transcript
+            newFinalText += (newFinalText ? ' ' : '') + chunk;
           } else {
+            // Interim results: show immediately (these update frequently)
             interimText += (interimText ? ' ' : '') + chunk;
           }
         }
-
-        finalTranscriptRef.current = finalText.trim();
+        
+        // Update final transcript (accumulate new final text)
+        if (newFinalText) {
+          const currentFinal = finalTranscriptRef.current || '';
+          // Simple check: only add if not already at the end (prevents duplicates)
+          if (!currentFinal.endsWith(newFinalText)) {
+            finalTranscriptRef.current = `${currentFinal} ${newFinalText}`.trim();
+          }
+        }
+        
+        // Combine final + interim for display - update immediately for lowest latency
         const combined = `${finalTranscriptRef.current} ${interimText}`.trim();
+        
+        // Update state immediately (no delays, no debouncing) for instant feedback
         if (combined.length > 0) {
           inputValueRef.current = combined;
-          setInputValue(combined);
+          setInputValue(combined); // Immediate update for lowest latency
         }
         setSpeechError('');
       };
