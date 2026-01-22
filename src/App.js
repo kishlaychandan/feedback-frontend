@@ -410,8 +410,46 @@ function App() {
           </div>
         ) : (
         <div className="chat-header">
-          <h1>Living Things Cooling Management</h1>
-          <p>Feedback Assistant</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
+            <div style={{ flex: 1 }}>
+              <h1>Living Things Cooling Management</h1>
+              <p>Feedback Assistant</p>
+            </div>
+            <button
+              onClick={() => {
+                // Hard refresh: bypass cache by adding timestamp to URL
+                const url = new URL(window.location.href);
+                url.searchParams.set('_refresh', Date.now().toString());
+                window.location.href = url.toString();
+              }}
+              className="refresh-button"
+              title="Hard refresh (bypass cache)"
+              type="button"
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: '1px solid rgba(255, 255, 255, 0.4)',
+                borderRadius: '8px',
+                color: 'white',
+                padding: '8px 12px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                transition: 'all 0.3s',
+                flexShrink: 0,
+                marginLeft: '10px'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'rgba(255, 255, 255, 0.3)';
+                e.target.style.borderColor = 'rgba(255, 255, 255, 0.6)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                e.target.style.borderColor = 'rgba(255, 255, 255, 0.4)';
+              }}
+            >
+              Refresh
+            </button>
+          </div>
           <div className="ac-selector-container">
             <span className="ac-selector-label">Zone:</span>
             <span className="ac-selector" style={{ cursor: 'default' }}>
