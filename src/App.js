@@ -118,6 +118,10 @@ function App() {
         if (recognitionRef.current._isManualStart) {
           finalTranscriptRef.current = '';
           recognitionRef.current._isManualStart = false;
+          // Clear seen texts on manual start to allow fresh recognition
+          if (recognitionRef.current._seenFinalTexts) {
+            recognitionRef.current._seenFinalTexts.clear();
+          }
         }
       };
       
@@ -165,34 +169,42 @@ function App() {
       };
 
       recognitionRef.current.onresult = (event) => {
-        // OPTIMIZED for low latency: Process only NEW results (from resultIndex)
-        // Show interim results immediately for instant feedback
+        // MOBILE-FIXED: Robust deduplication for mobile browser quirks
+        // Mobile browsers can fire overlapping results, reset resultIndex, or include duplicates
+        // Solution: Track ALL final results by exact text, rebuild transcript from scratch
         
-        let newFinalText = '';
+        // Initialize tracking Set if needed
+        if (!recognitionRef.current._seenFinalTexts) {
+          recognitionRef.current._seenFinalTexts = new Set();
+        }
+        
+        // Rebuild transcript from ALL results (mobile can reset resultIndex)
+        // But only add each unique final text ONCE
+        const finalTextParts = [];
         let interimText = '';
         
-        // Process only NEW results (from resultIndex onwards) - MUCH faster than processing all
-        for (let i = event.resultIndex; i < event.results.length; i++) {
+        // Process ALL results (mobile browsers can reset resultIndex, so we need to check all)
+        for (let i = 0; i < event.results.length; i++) {
           const result = event.results[i];
           const chunk = (result[0]?.transcript || '').trim();
           if (!chunk) continue;
           
           if (result.isFinal) {
-            // Final results: add to final transcript
-            newFinalText += (newFinalText ? ' ' : '') + chunk;
+            // For final results: track by exact text (case-insensitive) to prevent duplicates
+            const chunkKey = chunk.toLowerCase();
+            if (!recognitionRef.current._seenFinalTexts.has(chunkKey)) {
+              recognitionRef.current._seenFinalTexts.add(chunkKey);
+              finalTextParts.push(chunk);
+            }
           } else {
-            // Interim results: show immediately (these update frequently)
+            // Interim results: append (they're temporary and update frequently)
             interimText += (interimText ? ' ' : '') + chunk;
           }
         }
         
-        // Update final transcript (accumulate new final text)
-        if (newFinalText) {
-          const currentFinal = finalTranscriptRef.current || '';
-          // Simple check: only add if not already at the end (prevents duplicates)
-          if (!currentFinal.endsWith(newFinalText)) {
-            finalTranscriptRef.current = `${currentFinal} ${newFinalText}`.trim();
-          }
+        // Rebuild final transcript from unique parts (in order)
+        if (finalTextParts.length > 0) {
+          finalTranscriptRef.current = finalTextParts.join(' ').trim();
         }
         
         // Combine final + interim for display - update immediately for lowest latency
@@ -257,6 +269,10 @@ function App() {
       // Mark as manual start to reset transcript properly (prevents duplicate text on mobile)
       if (recognitionRef.current) {
         recognitionRef.current._isManualStart = true;
+        // Clear seen texts to start fresh
+        if (recognitionRef.current._seenFinalTexts) {
+          recognitionRef.current._seenFinalTexts.clear();
+        }
       }
       
       try {
@@ -281,6 +297,10 @@ function App() {
     finalTranscriptRef.current = '';
     inputValueRef.current = '';
     setInputValue('');
+    // Clear seen texts when canceling
+    if (recognitionRef.current._seenFinalTexts) {
+      recognitionRef.current._seenFinalTexts.clear();
+    }
     recognitionRef.current.stop();
   };
 
