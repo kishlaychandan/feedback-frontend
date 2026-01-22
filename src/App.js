@@ -397,7 +397,10 @@ function App() {
       <div className="chat-container">
         {!isZoneContext ? (
           <div className="chat-header">
-            <h1>Living Things Cooling Management</h1>
+            <div className="header-content">
+              <img src="/living_things.svg" alt="Ling Bot" className="header-logo" />
+              <h1>LIVING BOT</h1>
+            </div>
             <p>Dashboard</p>
             <div className="welcome-message" style={{ marginTop: 16 }}>
               <p>
@@ -410,51 +413,60 @@ function App() {
           </div>
         ) : (
         <div className="chat-header">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
-            <div style={{ flex: 1 }}>
-              <h1>Living Things Cooling Management</h1>
-              <p>Feedback Assistant</p>
+          <div className="header-layout">
+            {/* Left: Logo */}
+            <div className="header-left">
+              <img src="/living_things.svg" alt="Ling Bot" className="header-logo" />
             </div>
-            <button
-              onClick={() => {
-                // Hard refresh: bypass cache by adding timestamp to URL
-                const url = new URL(window.location.href);
-                url.searchParams.set('_refresh', Date.now().toString());
-                window.location.href = url.toString();
-              }}
-              className="refresh-button"
-              title="Hard refresh (bypass cache)"
-              type="button"
-              style={{
-                background: 'rgba(255, 255, 255, 0.2)',
-                border: '1px solid rgba(255, 255, 255, 0.4)',
-                borderRadius: '8px',
-                color: 'white',
-                padding: '8px 12px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500',
-                transition: 'all 0.3s',
-                flexShrink: 0,
-                marginLeft: '10px'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.background = 'rgba(255, 255, 255, 0.3)';
-                e.target.style.borderColor = 'rgba(255, 255, 255, 0.6)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.background = 'rgba(255, 255, 255, 0.2)';
-                e.target.style.borderColor = 'rgba(255, 255, 255, 0.4)';
-              }}
-            >
-              Refresh
-            </button>
-          </div>
-          <div className="ac-selector-container">
-            <span className="ac-selector-label">Working Area:</span>
-            <span className="ac-selector" style={{ cursor: 'default' }}>
-              {zoneIdFromUrl || selectedAcId}
-            </span>
+            
+            {/* Middle: Title, Feedback Assistant, Working Area */}
+            <div className="header-middle">
+              <h1>LIVING THINGS BOT</h1>
+              {/* <p>Feedback Assistant</p> */}
+              <div className="working-area-container">
+                <span className="ac-selector-label">Working Area:</span>
+                <span className="ac-selector" style={{ cursor: 'default' }}>
+                  {zoneIdFromUrl || selectedAcId}
+                </span>
+              </div>
+            </div>
+            
+            {/* Right: Refresh Button */}
+            <div className="header-right">
+              <button
+                onClick={() => {
+                  // Hard refresh: bypass cache by adding timestamp to URL
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('_refresh', Date.now().toString());
+                  window.location.href = url.toString();
+                }}
+                className="refresh-button"
+                title="Hard refresh (bypass cache)"
+                type="button"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  borderRadius: '8px',
+                  color: 'white',
+                  padding: '8px 12px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  transition: 'all 0.3s',
+                  flexShrink: 0
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.3)';
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.6)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.4)';
+                }}
+              >
+                Refresh
+              </button>
+            </div>
           </div>
           {speechError && (
             <div className="speech-error" role="alert">
