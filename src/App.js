@@ -460,7 +460,7 @@ function App() {
                         onClick={handleVoiceInput}
                         type="button"
                       >
-                        Stop &amp; Send
+                        Send
                       </button>
                     </div>
                   </div>
