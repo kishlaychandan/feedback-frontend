@@ -198,6 +198,8 @@ html, body {
     overflow-x: hidden;
     word-wrap: break-word;
     overflow-wrap: break-word;
+    font-size: 16px !important; /* Minimum 16px to prevent iOS Safari auto-zoom */
+    -webkit-text-size-adjust: 100%;
   }
   
   .voice-button,
@@ -976,9 +978,11 @@ html, body {
 @media (max-width: 768px) {
   .text-input {
     padding: 8px 12px;
-    font-size: 14px;
+    font-size: 16px; /* Minimum 16px to prevent iOS Safari auto-zoom */
     max-height: 80px;
     line-height: 1.4;
+    /* Prevent zoom on focus in iOS */
+    -webkit-text-size-adjust: 100%;
   }
 }
 
