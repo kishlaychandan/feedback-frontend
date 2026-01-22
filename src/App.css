@@ -46,7 +46,9 @@ html, body {
     align-items: flex-start;
     min-height: 100vh;
     height: 100vh;
+    max-height: 100vh;
     overflow: hidden;
+    position: relative;
   }
   
   .chat-container {
@@ -58,6 +60,7 @@ html, body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    position: relative;
   }
 }
 
@@ -218,12 +221,13 @@ html, body {
   .messages-container {
     padding: 10px;
     gap: 10px;
-    flex: 1;
+    flex: 1 1 auto;
     overflow-y: auto;
     overflow-x: hidden;
     min-height: 0;
-    max-height: 100%;
+    max-height: none;
     -webkit-overflow-scrolling: touch;
+    position: relative;
   }
 }
 
@@ -616,12 +620,22 @@ html, body {
   .input-container {
     padding: 10px;
     flex-shrink: 0;
+    flex-grow: 0;
     position: relative;
     z-index: 10;
     background: white;
     border-top: 1px solid #e0e0e0;
     width: 100%;
     box-sizing: border-box;
+    display: block;
+    min-height: auto;
+  }
+  
+  .input-wrapper {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    width: 100%;
   }
 }
 
@@ -693,6 +707,12 @@ html, body {
     width: 40px;
     height: 40px;
     font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    visibility: visible;
+    opacity: 1;
+    flex-shrink: 0;
   }
 }
 
