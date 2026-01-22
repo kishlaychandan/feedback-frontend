@@ -72,6 +72,20 @@ html, body {
     overflow: hidden;
     position: relative;
   }
+  
+  /* Ensure proper flex distribution: header fixed, messages flexible, input fixed */
+  .chat-container > .chat-header {
+    flex: 0 0 auto;
+  }
+  
+  .chat-container > .messages-container {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+  
+  .chat-container > .input-container {
+    flex: 0 0 auto;
+  }
 }
 
 
@@ -248,7 +262,7 @@ html, body {
     flex: 1 1 0;
     overflow-y: auto;
     overflow-x: hidden;
-    min-height: 200px;
+    min-height: 0;
     max-height: none;
     -webkit-overflow-scrolling: touch;
     position: relative;
@@ -256,7 +270,7 @@ html, body {
     flex-direction: column;
     visibility: visible !important;
     opacity: 1 !important;
-    height: auto;
+    height: 0; /* Force flex to calculate height */
   }
 }
 
@@ -650,7 +664,10 @@ html, body {
     padding: 8px 10px;
     flex-shrink: 0;
     flex-grow: 0;
-    position: relative;
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
     z-index: 10;
     background: white;
     border-top: 1px solid #e0e0e0;
@@ -658,6 +675,7 @@ html, body {
     box-sizing: border-box;
     display: block;
     min-height: auto;
+    margin-top: auto;
   }
   
   .input-wrapper {
