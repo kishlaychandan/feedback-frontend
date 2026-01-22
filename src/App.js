@@ -23,8 +23,6 @@ function App() {
   const selectedAcIdRef = useRef('AC-001');
   const isLoadingRef = useRef(false);
   const sessionIdRef = useRef('');
-  const lastProcessedIndexRef = useRef(-1); // Track last processed result index to avoid duplicates
-  const seenTranscriptsRef = useRef(new Set()); // Track seen transcript chunks to prevent mobile duplicates
 
   // Create a stable per-browser sessionId for multi-user concurrency (demo)
   useEffect(() => {
@@ -112,63 +110,81 @@ function App() {
       recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = true;
       recognitionRef.current.lang = 'en-US';
+      
+      // Mobile-specific: prevent auto-restart on mobile browsers
+      // Some mobile browsers auto-restart recognition, causing duplicates
+      recognitionRef.current.onstart = () => {
+        // Only reset if this was a manual start (not auto-restart)
+        if (recognitionRef.current._isManualStart) {
+          finalTranscriptRef.current = '';
+          recognitionRef.current._isManualStart = false;
+        }
+      };
+      
+      // Prevent auto-restart on mobile (which causes duplicate text)
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+        if (recognitionRef.current) {
+          recognitionRef.current._isManualStart = false; // Reset flag
+        }
+
+        // On mobile, recognition might end automatically (timeout, no speech, etc.)
+        // Only auto-send if user explicitly clicked "Stop & Send" button
+        if (shouldSendOnStopRef.current) {
+          shouldSendOnStopRef.current = false;
+
+          const textToSend =
+            (finalTranscriptRef.current && finalTranscriptRef.current.trim()) ||
+            (inputValueRef.current && inputValueRef.current.trim()) ||
+            '';
+
+          // Clear transcripts to prevent accumulation
+          finalTranscriptRef.current = '';
+          inputValueRef.current = '';
+          setInputValue('');
+
+          if (textToSend && textToSend.length > 0) {
+            // Small delay to ensure state is updated
+            setTimeout(() => {
+              if (typeof sendMessageRef.current === 'function') {
+                sendMessageRef.current(textToSend);
+              }
+            }, 100);
+          }
+        } else {
+          // Recognition ended but user didn't request send
+          // Keep the text in input so user can review/edit before sending manually
+          // Only clear if there's no meaningful text
+          const currentText = inputValueRef.current || '';
+          if (currentText.trim().length === 0) {
+            finalTranscriptRef.current = '';
+            inputValueRef.current = '';
+            setInputValue('');
+          }
+        }
+      };
 
       recognitionRef.current.onresult = (event) => {
-        let interimTranscript = '';
-        let newFinalText = '';
+        // IMPORTANT: On mobile (especially Chrome/Android), `resultIndex` / restarts can cause
+        // repeated chunks. The most reliable approach is to rebuild the transcript from scratch
+        // every time using the full `event.results` array.
+        let finalText = '';
+        let interimText = '';
 
-        // Only process NEW results (starting from event.resultIndex)
-        // This prevents duplicate processing on mobile where events can fire multiple times
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const chunk = event.results[i][0]?.transcript || '';
+        for (let i = 0; i < event.results.length; i++) {
+          const chunk = (event.results[i][0]?.transcript || '').trim();
           if (!chunk) continue;
-
-          // Normalize chunk for comparison (trim, lowercase)
-          const chunkNormalized = chunk.trim().toLowerCase();
-          if (!chunkNormalized) continue;
-
           if (event.results[i].isFinal) {
-            // Mobile-specific: Check if we've seen this exact transcript before
-            // Use content-based hash to track duplicates even if index resets
-            const chunkHash = chunkNormalized;
-            const isNewIndex = i > lastProcessedIndexRef.current;
-            const isNewContent = !seenTranscriptsRef.current.has(chunkHash);
-            
-            // Only process if we haven't seen this content before (primary check for mobile duplicates)
-            // Also check index to avoid processing old results
-            if (isNewContent && isNewIndex) {
-              const finalLower = finalTranscriptRef.current.toLowerCase();
-              
-              // Additional check: don't add if this chunk is already in final transcript
-              // This handles cases where recognition restarts and re-processes same text
-              // Also check if the chunk is a substring of existing final transcript (mobile quirk)
-              const alreadyIncluded = finalLower.length > 0 && 
-                                     (finalLower.includes(chunkNormalized) || 
-                                      chunkNormalized.includes(finalLower));
-              
-              if (!alreadyIncluded) {
-                newFinalText += (newFinalText ? ' ' : '') + chunk.trim();
-                lastProcessedIndexRef.current = Math.max(lastProcessedIndexRef.current, i);
-                seenTranscriptsRef.current.add(chunkHash);
-              }
-            }
+            finalText += (finalText ? ' ' : '') + chunk;
           } else {
-            // Interim results: only show if not already in final transcript
-            const finalLower = finalTranscriptRef.current.toLowerCase();
-            if (!finalLower.includes(chunkNormalized)) {
-              interimTranscript += chunk;
-            }
+            interimText += (interimText ? ' ' : '') + chunk;
           }
         }
 
-        // Update final transcript only if we have new final text
-        if (newFinalText) {
-          finalTranscriptRef.current = `${finalTranscriptRef.current} ${newFinalText}`.trim();
-        }
-
-        // Combine final + interim for display
-        const combined = `${finalTranscriptRef.current} ${interimTranscript}`.trim();
+        finalTranscriptRef.current = finalText.trim();
+        const combined = `${finalTranscriptRef.current} ${interimText}`.trim();
         if (combined.length > 0) {
+          inputValueRef.current = combined;
           setInputValue(combined);
         }
         setSpeechError('');
@@ -179,6 +195,12 @@ function App() {
         const err = event?.error || 'unknown';
         
         setIsListening(false);
+        if (recognitionRef.current) {
+          recognitionRef.current._isManualStart = false; // Reset flag on error
+        }
+        // Never auto-send after an error
+        shouldSendOnStopRef.current = false;
+        
         if (err === 'network') {
           setSpeechError('Network error. Please check your internet connection and try again.');
         } else if (err === 'not-allowed' || err === 'service-not-allowed') {
@@ -187,30 +209,6 @@ function App() {
           setSpeechError('No speech detected. Please try again and speak clearly.');
         } else {
           setSpeechError(`Voice recognition error: ${err}. Please try again or type your message.`);
-        }
-      };
-
-      recognitionRef.current.onend = () => {
-        setIsListening(false);
-
-        // Send only when the user explicitly stopped the mic (mic click again / Stop button)
-        if (shouldSendOnStopRef.current) {
-          shouldSendOnStopRef.current = false;
-
-          const textToSend =
-            (finalTranscriptRef.current && finalTranscriptRef.current.trim()) ||
-            (inputValueRef.current && inputValueRef.current.trim()) ||
-            '';
-
-          finalTranscriptRef.current = '';
-          setInputValue('');
-
-          if (textToSend) {
-            // Auto-send and clear input (handleSendMessage already clears input on successful send)
-            if (typeof sendMessageRef.current === 'function') {
-              sendMessageRef.current(textToSend);
-            }
-          }
         }
       };
     }
@@ -229,19 +227,34 @@ function App() {
     }
 
     if (isListening) {
-      // Stop listening -> auto-send when stopped
+      // User clicked mic again to stop -> auto-send when stopped
       shouldSendOnStopRef.current = true;
       recognitionRef.current.stop();
     } else {
-      // Start listening - reset all transcript tracking
+      // Start listening - reset everything
       setSpeechError('');
       finalTranscriptRef.current = '';
-      lastProcessedIndexRef.current = -1; // Reset index tracking
-      seenTranscriptsRef.current.clear(); // Clear seen transcripts for new session
+      inputValueRef.current = '';
+      setInputValue('');
       shouldSendOnStopRef.current = false;
-      setInputValue(''); // Clear input when starting new session
-      recognitionRef.current.start();
-      setIsListening(true);
+      
+      // Mark as manual start to reset transcript properly (prevents duplicate text on mobile)
+      if (recognitionRef.current) {
+        recognitionRef.current._isManualStart = true;
+      }
+      
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (err) {
+        // If already started or other error, just update state
+        console.warn('Speech recognition start error:', err);
+        setIsListening(false);
+        setSpeechError('Could not start voice recognition. Please try again.');
+        if (recognitionRef.current) {
+          recognitionRef.current._isManualStart = false;
+        }
+      }
     }
   };
 
@@ -250,8 +263,7 @@ function App() {
     // Stop without sending
     shouldSendOnStopRef.current = false;
     finalTranscriptRef.current = '';
-    lastProcessedIndexRef.current = -1; // Reset index tracking
-    seenTranscriptsRef.current.clear(); // Clear seen transcripts
+    inputValueRef.current = '';
     setInputValue('');
     recognitionRef.current.stop();
   };
