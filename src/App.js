@@ -3,6 +3,7 @@ import './App.css';
 
 // const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 const API_URL = process.env.REACT_APP_API_URL || 'https://lttalk.livingthings.dev';
+
 function App() {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
@@ -22,6 +23,8 @@ function App() {
   const selectedAcIdRef = useRef('AC-001');
   const isLoadingRef = useRef(false);
   const sessionIdRef = useRef('');
+  const lastProcessedIndexRef = useRef(-1); // Track last processed result index to avoid duplicates
+  const seenTranscriptsRef = useRef(new Set()); // Track seen transcript chunks to prevent mobile duplicates
 
   // Create a stable per-browser sessionId for multi-user concurrency (demo)
   useEffect(() => {
@@ -112,18 +115,62 @@ function App() {
 
       recognitionRef.current.onresult = (event) => {
         let interimTranscript = '';
+        let newFinalText = '';
 
+        // Only process NEW results (starting from event.resultIndex)
+        // This prevents duplicate processing on mobile where events can fire multiple times
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const chunk = event.results[i][0]?.transcript || '';
+          if (!chunk) continue;
+
+          // Normalize chunk for comparison (trim, lowercase)
+          const chunkNormalized = chunk.trim().toLowerCase();
+          if (!chunkNormalized) continue;
+
           if (event.results[i].isFinal) {
-            finalTranscriptRef.current = `${finalTranscriptRef.current} ${chunk}`.trim();
+            // Mobile-specific: Check if we've seen this exact transcript before
+            // Use content-based hash to track duplicates even if index resets
+            const chunkHash = chunkNormalized;
+            const isNewIndex = i > lastProcessedIndexRef.current;
+            const isNewContent = !seenTranscriptsRef.current.has(chunkHash);
+            
+            // Only process if we haven't seen this content before (primary check for mobile duplicates)
+            // Also check index to avoid processing old results
+            if (isNewContent && isNewIndex) {
+              const finalLower = finalTranscriptRef.current.toLowerCase();
+              
+              // Additional check: don't add if this chunk is already in final transcript
+              // This handles cases where recognition restarts and re-processes same text
+              // Also check if the chunk is a substring of existing final transcript (mobile quirk)
+              const alreadyIncluded = finalLower.length > 0 && 
+                                     (finalLower.includes(chunkNormalized) || 
+                                      chunkNormalized.includes(finalLower));
+              
+              if (!alreadyIncluded) {
+                newFinalText += (newFinalText ? ' ' : '') + chunk.trim();
+                lastProcessedIndexRef.current = Math.max(lastProcessedIndexRef.current, i);
+                seenTranscriptsRef.current.add(chunkHash);
+              }
+            }
           } else {
-            interimTranscript += chunk;
+            // Interim results: only show if not already in final transcript
+            const finalLower = finalTranscriptRef.current.toLowerCase();
+            if (!finalLower.includes(chunkNormalized)) {
+              interimTranscript += chunk;
+            }
           }
         }
 
+        // Update final transcript only if we have new final text
+        if (newFinalText) {
+          finalTranscriptRef.current = `${finalTranscriptRef.current} ${newFinalText}`.trim();
+        }
+
+        // Combine final + interim for display
         const combined = `${finalTranscriptRef.current} ${interimTranscript}`.trim();
-        if (combined.length > 0) setInputValue(combined);
+        if (combined.length > 0) {
+          setInputValue(combined);
+        }
         setSpeechError('');
       };
 
@@ -186,10 +233,13 @@ function App() {
       shouldSendOnStopRef.current = true;
       recognitionRef.current.stop();
     } else {
-      // Start listening
+      // Start listening - reset all transcript tracking
       setSpeechError('');
       finalTranscriptRef.current = '';
+      lastProcessedIndexRef.current = -1; // Reset index tracking
+      seenTranscriptsRef.current.clear(); // Clear seen transcripts for new session
       shouldSendOnStopRef.current = false;
+      setInputValue(''); // Clear input when starting new session
       recognitionRef.current.start();
       setIsListening(true);
     }
@@ -200,6 +250,8 @@ function App() {
     // Stop without sending
     shouldSendOnStopRef.current = false;
     finalTranscriptRef.current = '';
+    lastProcessedIndexRef.current = -1; // Reset index tracking
+    seenTranscriptsRef.current.clear(); // Clear seen transcripts
     setInputValue('');
     recognitionRef.current.stop();
   };
