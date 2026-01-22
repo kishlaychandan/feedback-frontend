@@ -207,6 +207,9 @@ html, body {
   .messages-container {
     padding: 10px;
     gap: 10px;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
   }
 }
 
@@ -598,6 +601,10 @@ html, body {
 @media (max-width: 768px) {
   .input-container {
     padding: 10px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 5;
+    background: white;
   }
 }
 
