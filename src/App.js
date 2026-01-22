@@ -5,6 +5,22 @@ import { requestMicrophonePermission, getMicrophonePermissionErrorMessage } from
 // const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 const API_URL = process.env.REACT_APP_API_URL || 'https://lttalk.livingthings.dev';
 
+/**
+ * Map zone ID to friendly display name
+ */
+function getZoneDisplayName(zoneId) {
+  if (!zoneId) return zoneId;
+  const zoneMap = {
+    '1': 'Zone 1',
+    '2': 'Zone 2',
+    '3': 'Conference Room',
+    'AC-001': 'AC-001',
+    'AC-002': 'AC-002',
+    'AC-003': 'AC-003',
+  };
+  return zoneMap[String(zoneId)] || zoneId;
+}
+
 function App() {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
@@ -501,7 +517,7 @@ function App() {
               <div className="working-area-container">
                 <span className="ac-selector-label">Working Area:</span>
                 <span className="ac-selector" style={{ cursor: 'default' }}>
-                  {zoneIdFromUrl || selectedAcId}
+                  {getZoneDisplayName(zoneIdFromUrl || selectedAcId)}
                 </span>
               </div>
             </div>
