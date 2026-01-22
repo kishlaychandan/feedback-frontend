@@ -52,8 +52,8 @@ html, body {
   }
   
   .chat-container {
-    height: 100vh;
-    max-height: 100vh;
+    height: 92vh;
+    max-height: 92vh;
     border-radius: 0;
     box-shadow: none;
     width: 100%;
