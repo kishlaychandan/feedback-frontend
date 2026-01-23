@@ -536,7 +536,7 @@ function App() {
               <h1>LIVING THINGS BOT</h1>
               {/* <p>Feedback Assistant</p> */}
               <div className="working-area-container">
-                <span className="ac-selector-label">Working Area:</span>
+                {/* <span className="ac-selector-label">Working Area:</span> */}
                 <span className="ac-selector" style={{ cursor: 'default' }}>
                   {getZoneDisplayName(zoneIdFromUrl || selectedAcId)}
                 </span>
