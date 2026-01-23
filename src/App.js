@@ -533,7 +533,7 @@ function App() {
             
             {/* Middle: Title, Feedback Assistant, Working Area */}
             <div className="header-middle">
-              <h1>LIVING THINGS BOT</h1>
+              <h1>LIVING THINGS</h1>
               {/* <p>Feedback Assistant</p> */}
               <div className="working-area-container">
                 {/* <span className="ac-selector-label">Working Area:</span> */}
