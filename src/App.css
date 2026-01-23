@@ -882,6 +882,40 @@ html, body {
   margin-top: 5px;
 }
 
+.play-speech-button {
+  background: transparent;
+  border: none;
+  color: #667eea;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 4px 8px;
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  opacity: 0.7;
+  vertical-align: middle;
+}
+
+.play-speech-button:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.play-speech-button:active {
+  transform: scale(0.95);
+}
+
+/* Mobile styles for play button */
+@media (max-width: 768px) {
+  .play-speech-button {
+    font-size: 16px;
+    padding: 3px 6px;
+    margin-left: 6px;
+  }
+}
+
 .typing-indicator {
   display: flex;
   gap: 5px;
@@ -1033,19 +1067,40 @@ html, body {
 /* Removed mobile-specific styles - using desktop styles for all */
 
 .voice-button {
-  background: #f0f0f0;
-  color: #666;
+  background: #f8f9fa;
+  color: #5f6368;
+  border: 1px solid transparent;
 }
 
 .voice-button:hover:not(:disabled) {
-  background: #e0e0e0;
-  transform: scale(1.05);
+  background: #e8eaed;
+  color: #202124;
+}
+
+.voice-button:active:not(:disabled) {
+  background: #dadce0;
+}
+
+.voice-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .voice-button.listening {
-  background: #ff4444;
+  background: #ea4335;
   color: white;
   animation: pulse 1.5s infinite;
+}
+
+.voice-button.listening:hover {
+  background: #d33b2c;
+  color: white;
+}
+
+.voice-button .mic-icon {
+  width: 24px;
+  height: 24px;
+  display: block;
 }
 
 @keyframes pulse {

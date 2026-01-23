@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import './App.css';
 import { requestMicrophonePermission, getMicrophonePermissionErrorMessage } from './utils/microphonePermission';
 
-// const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
-const API_URL = process.env.REACT_APP_API_URL || 'https://lttalk.livingthings.dev';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+// const API_URL = process.env.REACT_APP_API_URL || 'https://lttalk.livingthings.dev';
 
 /**
  * Map zone ID to friendly display name
@@ -19,6 +19,18 @@ function getZoneDisplayName(zoneId) {
     'AC-003': 'AC-003',
   };
   return zoneMap[String(zoneId)] || zoneId;
+}
+
+/**
+ * Detect if running on iOS Safari
+ * iOS Safari has restrictions on speech synthesis that require user interaction
+ */
+function isIOSSafari() {
+  const ua = window.navigator.userAgent;
+  const iOS = /iPad|iPhone|iPod/.test(ua);
+  const webkit = /WebKit/.test(ua);
+  const chrome = /CriOS|FxiOS/.test(ua); // Chrome/Firefox on iOS
+  return iOS && webkit && !chrome; // iOS Safari (not Chrome/Firefox on iOS)
 }
 
 function App() {
@@ -459,11 +471,20 @@ function App() {
       messagesRef.current = [...messagesRef.current, assistantMessage];
       setMessages(messagesRef.current);
 
-      if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(data.response);
-        utterance.rate = 0.9;
-        utterance.pitch = 1;
-        window.speechSynthesis.speak(utterance);
+      // Auto-speak on non-iOS browsers (Android Chrome, desktop browsers)
+      // iOS Safari requires user interaction, so we'll show a play button instead
+      if ('speechSynthesis' in window && !isIOSSafari()) {
+        try {
+          window.speechSynthesis.cancel(); // Cancel any ongoing speech
+          const utterance = new SpeechSynthesisUtterance(data.response);
+          utterance.rate = 0.9;
+          utterance.pitch = 1;
+          utterance.volume = 1.0;
+          utterance.lang = 'en-US';
+          window.speechSynthesis.speak(utterance);
+        } catch (err) {
+          console.warn('Speech synthesis error:', err);
+        }
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -627,6 +648,30 @@ function App() {
                   <span className="message-time">
                     {msg.timestamp.toLocaleTimeString()}
                   </span>
+                  {/* Play button for assistant messages (especially useful for iOS Safari) */}
+                  {msg.type === 'assistant' && 'speechSynthesis' in window && (
+                    <button
+                      className="play-speech-button"
+                      onClick={() => {
+                        try {
+                          window.speechSynthesis.cancel();
+                          const utterance = new SpeechSynthesisUtterance(msg.text);
+                          utterance.rate = 0.9;
+                          utterance.pitch = 1;
+                          utterance.volume = 1.0;
+                          utterance.lang = 'en-US';
+                          window.speechSynthesis.speak(utterance);
+                        } catch (err) {
+                          console.warn('Failed to speak:', err);
+                        }
+                      }}
+                      title="Play response"
+                      type="button"
+                      aria-label="Play response audio"
+                    >
+                      🔊
+                    </button>
+                  )}
                 </div>
               </div>
             ))
@@ -660,8 +705,25 @@ function App() {
               onClick={handleVoiceInput}
               disabled={isLoading}
               title={isListening ? 'Stop listening' : 'Start voice input'}
+              aria-label={isListening ? 'Stop listening' : 'Start voice input'}
             >
-              🎤
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="mic-icon"
+              >
+                <path
+                  d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"
+                  fill="currentColor"
+                />
+                <path
+                  d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"
+                  fill="currentColor"
+                />
+              </svg>
             </button>
             <button
               className="send-button"
