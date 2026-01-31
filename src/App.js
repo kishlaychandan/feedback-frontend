@@ -591,8 +591,8 @@ function App() {
 
         {!isZoneContext ? null : (
           <>
-          <div className="messages-container">
-          {/* Center overlay while listening (over messages only, so input stays visible) */}
+          <div className="messages-wrapper">
+          {/* Listening overlay outside scroll area so it stays centered on screen when chat is long */}
           {isListening && (
             <div className="listening-overlay" role="dialog" aria-live="polite">
               <div className="listening-card">
@@ -631,6 +631,7 @@ function App() {
             </div>
           )}
 
+          <div className="messages-container">
           {messages.length === 0 && !isListening ? (
             <div className="welcome-message">
               <p>👋 Welcome! You can:</p>
@@ -688,6 +689,7 @@ function App() {
             </div>
           )}
           <div ref={messagesEndRef} />
+        </div>
         </div>
 
         <div className="input-container">
