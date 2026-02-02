@@ -477,10 +477,7 @@ function App() {
         try {
           window.speechSynthesis.cancel(); // Cancel any ongoing speech
           const utterance = new SpeechSynthesisUtterance(data.response);
-          utterance.rate = 0.9;
-          utterance.pitch = 1;
-          utterance.volume = 1.0;
-          utterance.lang = 'en-US';
+          utterance.lang = 'hi-IN';
           window.speechSynthesis.speak(utterance);
         } catch (err) {
           console.warn('Speech synthesis error:', err);
@@ -657,10 +654,7 @@ function App() {
                         try {
                           window.speechSynthesis.cancel();
                           const utterance = new SpeechSynthesisUtterance(msg.text);
-                          utterance.rate = 0.9;
-                          utterance.pitch = 1;
-                          utterance.volume = 1.0;
-                          utterance.lang = 'en-US';
+                          utterance.lang = 'hi-IN';
                           window.speechSynthesis.speak(utterance);
                         } catch (err) {
                           console.warn('Failed to speak:', err);
