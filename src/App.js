@@ -477,7 +477,7 @@ function App() {
         try {
           window.speechSynthesis.cancel(); // Cancel any ongoing speech
           const utterance = new SpeechSynthesisUtterance(data.response);
-          utterance.lang = 'hi-IN';
+          utterance.lang = 'en-IN';
           window.speechSynthesis.speak(utterance);
         } catch (err) {
           console.warn('Speech synthesis error:', err);
@@ -654,7 +654,7 @@ function App() {
                         try {
                           window.speechSynthesis.cancel();
                           const utterance = new SpeechSynthesisUtterance(msg.text);
-                          utterance.lang = 'hi-IN';
+                          utterance.lang = 'en-IN';
                           window.speechSynthesis.speak(utterance);
                         } catch (err) {
                           console.warn('Failed to speak:', err);
